@@ -240,7 +240,7 @@ export default function Interview() {
         })
             .then(response => {
                 console.log('Received response:', response);
-                setRecognizedText(JSON.parse(response.data.recognizedText).return_object.recognized);
+                setRecognizedText(response.data.recognizedText);
             })
             .catch(error => {
                 if (error.response) {

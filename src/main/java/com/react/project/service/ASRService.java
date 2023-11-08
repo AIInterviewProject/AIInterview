@@ -49,8 +49,8 @@ public class ASRService {
         this.webClient = WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(
                         HttpClient.create()
-                                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 300000)  // 200
-                                .responseTimeout(Duration.ofSeconds(300))  // 100
+                                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000000)  // 200
+                                .responseTimeout(Duration.ofSeconds(1000))  // 100
                 ))
                 .build();
 
@@ -79,8 +79,8 @@ public class ASRService {
                 .addOutput(mp3File.toString())  // 결과 파일 설정
                 .setAudioChannels(1)            // 오디오 채널 설정 (모노)
                 .setAudioCodec("libmp3lame")    // 오디오 코덱 설정
-                .setAudioSampleRate(16000)      // 샘플 레이트 설정
-                .setAudioBitRate(96000)         // 비트레이트 설정
+                .setAudioSampleRate(8000)      // 샘플 레이트 설정
+                .setAudioBitRate(32000)         // 비트레이트 설정
                 .done();
 
         // 작업 실행
@@ -123,16 +123,18 @@ public class ASRService {
                 .header("Authorization", accessKey)
                 .bodyValue(request)
                 .retrieve()
-                .onStatus(
-                        status -> status.isError(),
-                        clientResponse -> clientResponse.bodyToMono(String.class)
-                                .flatMap(errorBody -> {
-                                    logger.error("Error from external API: {}", errorBody);
-                                    return Mono.error(new RuntimeException("Error from external API: " + errorBody));
-                                })
+                .onStatus(status -> status.isError(), clientResponse ->
+                        clientResponse.bodyToMono(String.class).flatMap(errorBody -> {
+                            logger.error("Error from external API: {} with status code {}", errorBody, clientResponse.statusCode());
+                            return Mono.error(new RuntimeException("Error from external API: " + errorBody));
+                        })
                 )
-                .bodyToMono(String.class);
+
+                .bodyToMono(String.class)
+                .doOnSuccess(response -> logger.info("Success response from external API: {}", response))
+                .doOnError(e -> logger.error("Error while sending file to external API", e));
     }
+
 
     // 클라이언트로부터 받은 파일을 변환하고 전송하는 메서드
     public Mono<String> recognizeSpeech(MultipartFile file, String languageCode) {
