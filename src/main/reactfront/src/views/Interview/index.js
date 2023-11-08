@@ -47,7 +47,6 @@ export default function Interview() {
     const [currentProblemIndex, setCurrentProblemIndex] = useState(0);
     const [speechRecognition, setSpeechRecognition] = useState(null);
     const [recognizedText, setRecognizedText] = useState('');
-    const [listening, setListening] = useState(false);
     const [recordedText, setRecordedText] = useState([]); // 음성 인식 결과를 저장할 배열 추가
     const [interviewCompleted, setInterviewCompleted] = useState(false); // 면접 완료 여부를 추적하는 상태 추가
     const [interviewResult, setInterviewResult] = useState('');
@@ -60,6 +59,11 @@ export default function Interview() {
     const [gptResponsesReceived, setGptResponsesReceived] = useState(0);
     const [showStartScreen, setShowStartScreen] = useState(true);
     const [activeTab, setActiveTab] = useState('interviewRecord'); // 'interviewRecord' 또는 'answerAnalysis'
+
+    const [listening, setListening] = useState(false);
+    const [audioFile, setAudioFile] = useState(null);
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
 
     const handleInterviewRecordClick = () => {
         setActiveTab('interviewRecord');
@@ -188,6 +192,70 @@ export default function Interview() {
             speechRecognition.stop();
             setListening(false);
         }
+    };
+
+    const startRecording = () => {
+        navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, bitrate: 96000 } })
+            .then(stream => {
+                mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                mediaRecorderRef.current.start();
+
+                mediaRecorderRef.current.ondataavailable = (event) => {
+                    audioChunksRef.current.push(event.data);
+                };
+
+                setListening(true);
+            })
+            .catch(error => {
+                console.error("오디오 녹음을 시작하는데 실패했습니다:", error);
+            });
+    };
+
+    const stopRecordingAndSend = () => {
+        mediaRecorderRef.current.stop();
+        setListening(false);
+
+        mediaRecorderRef.current.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const newAudioFile = new File([audioBlob], 'user-interview.webm', { type: 'audio/webm' });
+
+            setAudioFile(newAudioFile); // 비동기 상태 업데이트
+            sendAudioFile(newAudioFile); // 상태 업데이트 후 바로 파일 전송 함수 호출
+        };
+    };
+
+    // 오디오 파일을 백엔드로 전송하는 함수
+    const sendAudioFile = (audioFile) => {
+        const formData = new FormData();
+        console.log('File size:', audioFile.size);
+        console.log('File type:', audioFile.type);
+        formData.append("audioFile", audioFile);
+        formData.append("languageCode", "korean");
+
+        axios.post('http://localhost:8080/api/asr/recognize', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+            .then(response => {
+                console.log('Received response:', response);
+                setRecognizedText(JSON.parse(response.data.recognizedText).return_object.recognized);
+            })
+            .catch(error => {
+                if (error.response) {
+                    // 요청이 이루어졌으며 서버가 상태 코드로 응답했습니다.
+                    console.log(error.response.data);
+                    console.log(error.response.status);
+                    console.log(error.response.headers);
+                } else if (error.request) {
+                    // 요청이 이루어 졌으나 응답을 받지 못했습니다.
+                    console.log(error.request);
+                } else {
+                    // 오류를 발생시킨 요청을 설정하는 중에 문제가 발생했습니다.
+                    console.log('Error', error.message);
+                }
+            });
     };
 
     const saveRecordedText = async () => {
@@ -504,10 +572,10 @@ export default function Interview() {
                                             </div>
                                         </div>
                                         <div>
-                                            <Button variant="contained" color="success" onClick={startListening} disabled={listening} style={{ marginRight: '10px'}}>
+                                            <Button variant="contained" color="success" onClick={startRecording} disabled={listening} style={{ marginRight: '10px'}}>
                                                 대답 하기
                                             </Button>
-                                            <Button variant="contained" color="error" onClick={stopListening} disabled={!listening} style={{ marginRight: '10px' }}>
+                                            <Button variant="contained" color="error" onClick={stopRecordingAndSend} disabled={!listening} style={{ marginRight: '10px' }}>
                                                 대답 끝
                                             </Button>
                                             <Button variant="outlined" onClick={saveRecordedText}>대답 저장</Button>
