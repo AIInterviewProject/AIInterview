@@ -89,7 +89,7 @@ export default function SignIn({setAuthView}){
                         <br />
                         AI 프로젝트
                         <br />
-                        Be With You에 가입하세요!
+                        Winterview에 가입하세요!
                     </Typography>
                 </div>
                 <img alt="loginBackground" src="/img/img/LoginSignINBtn.png" width="10%" onClick={() => signInHandler()} style={{
