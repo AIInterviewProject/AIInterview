@@ -76,8 +76,8 @@ export default function SignIn({setAuthView}){
                                     fontSize: '1.9vw',
                                     position: 'absolute',
                                     top: "55%",
-                                    left: "38%", // 수정: 왼쪽으로 이동
-                                    transform: "translate(-50%, -60%)" // 수정: 왼쪽으로 이동
+                                    left: "38%",
+                                    transform: "translate(-50%, -60%)"
                                 }}
                             />
                         </Box>

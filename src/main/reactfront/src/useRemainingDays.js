@@ -9,7 +9,7 @@ export const useRemainingDays = () => {
     const [endDate, setEndDate] = useState(new Date());
 
     const updateRemainingDays = () => {
-        if (!userEmail) return;  // userEmail이 없으면 함수를 종료
+        if (!userEmail) return;
         axios.get(`/api/get-days?userEmail=${userEmail}`)
             .then(response => {
                 setRemainingDays(response.data);

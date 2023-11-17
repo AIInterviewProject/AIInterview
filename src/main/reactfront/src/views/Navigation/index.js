@@ -37,10 +37,10 @@ export default function Navigation() {
             updateChipStatus(); // 상태 업데이트 함수 호출
         };
 
-        document.addEventListener('paymentSuccess', handlePaymentSuccess); // 이벤트 리스너 등록
+        document.addEventListener('paymentSuccess', handlePaymentSuccess);
 
         return () => {
-            document.removeEventListener('paymentSuccess', handlePaymentSuccess); // 컴포넌트 언마운트 시 리스너 제거
+            document.removeEventListener('paymentSuccess', handlePaymentSuccess);
         };
     }, [updateChipStatus]);
 
